@@ -1506,11 +1506,41 @@ static int multiframe_large_buffer(void)
     return 0;
 }
 
+static int multiframe_force_channels_state(void)
+{
+    /* The multi-frame path changes force_channels internally during a
+       stereo-to-mono transition. It must restore the public parameter so a
+       later frame (and a later OPUS_RESET_STATE) does not stay mono. */
+    OpusEncoder *enc;
+    int err, i, frame;
+    int force_channels = -1;
+    static short pcm[48000*3/5*2];
+    static unsigned char data[8192];
+
+    for (i = 0; i < 48000*3/5*2; ++i)
+        pcm[i] = (short)(6000*sin(i*.011) + 2500*sin(i*.0031));
+    enc = opus_encoder_create(48000, 2, OPUS_APPLICATION_VOIP, &err);
+    opus_test_assert(err == OPUS_OK);
+    for (i = 0; i < 6; ++i) {
+        if (i == 2)
+            opus_encoder_ctl(enc, OPUS_SET_BITRATE(8000));
+        else if (i == 4)
+            opus_encoder_ctl(enc, OPUS_SET_BITRATE(64000));
+        frame = opus_encode(enc, &pcm[i*4800*2], 4800, data, sizeof(data));
+        opus_test_assert(frame > 0);
+    }
+    opus_encoder_ctl(enc, OPUS_GET_FORCE_CHANNELS(&force_channels));
+    opus_test_assert(force_channels == OPUS_AUTO);
+    opus_encoder_destroy(enc);
+    return 0;
+}
+
 void regression_test(void)
 {
    fprintf(stderr, "Running simple tests for bugs that have been fixed previously\n");
    frame_size_select_overflow();
    multiframe_large_buffer();
+   multiframe_force_channels_state();
    celt_ec_internal_error();
    mscbr_encode_fail10();
    mscbr_encode_fail();

@@ -753,6 +753,16 @@ if(BUILD_TESTING AND NOT BUILD_SHARED_LIBS)
         -DCMAKE_SYSTEM_NAME=${CMAKE_SYSTEM_NAME}
         -P "${PROJECT_SOURCE_DIR}/cmake/RunTest.cmake")
 
+  add_executable(test_opus_cross_frame tests/test_opus_cross_frame.c)
+  target_include_directories(test_opus_cross_frame
+                            PRIVATE ${CMAKE_CURRENT_BINARY_DIR} celt dnn)
+  target_link_libraries(test_opus_cross_frame PRIVATE opus)
+  target_compile_definitions(test_opus_cross_frame PRIVATE OPUS_BUILD)
+  add_test(NAME test_opus_cross_frame COMMAND ${CMAKE_COMMAND}
+        -DTEST_EXECUTABLE=$<TARGET_FILE:test_opus_cross_frame>
+        -DCMAKE_SYSTEM_NAME=${CMAKE_SYSTEM_NAME}
+        -P "${PROJECT_SOURCE_DIR}/cmake/RunTest.cmake")
+
   add_executable(test_opus_extensions ${test_opus_extensions_sources})
   target_include_directories(test_opus_extensions
                             PRIVATE ${CMAKE_CURRENT_BINARY_DIR} celt dnn)
